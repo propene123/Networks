@@ -1,32 +1,45 @@
 import sys
+import json
+import os
 from socket import *
 from threading import Thread
 
-def getBoards():
+def getBoards(socket):
+     boards = [x for x in os.listdir(os.path.join(os.getcwd(), 'board')) if os.path.isdir(os.path.join(os.path.join(os.getcwd(), 'board'), x))]
+     msgJson = json.dumps({'type': 'GET_BOARDS_RESPONSE', 'payload': boards})
+     length = len(msgJson.encode('utf-8'))
+     message = str(length) + '_' + msgJson
+     socket.sendall(message.encode())
+
+
+
+
+def getMessages(socket):
      pass
 
 
-def getMessages():
+def postMessage(socket):
      pass
 
-
-def postMessage():
-     pass
-
-def handleMessage(msg):
-     pass
+def handleMessage(msg, socket):
+     obj = json.loads(msg)
+     if(obj['type'] == 'GET_BOARDS'):
+          getBoards(socket)
 
 
 def clientThread(socket):
      while True:
           sentence = socket.recv(1024).decode();
+          if not sentence:
+               break
           splitSentence = sentence.split('_', 1)
           length = int(splitSentence[0])
           message = splitSentence[1]
-          messageLength = length(message.encode('utf-8'))
+          messageLength = len(message.encode('utf-8'))
           if(messageLength < length):
                message += socket.recv(length - messageLength).decode()
-          handleMessage(message)
+          handleMessage(message, socket)
+     socket.close()
 
 serverAddress = sys.argv[1]
 serverPort = sys.argv[2]
