@@ -1,16 +1,55 @@
+import sys
 from socket import *
+from threading import Thread
 
-serverPort = 12000
+def getBoards():
+     pass
+
+
+def getMessages():
+     pass
+
+
+def postMessage():
+     pass
+
+def handleMessage(msg):
+     pass
+
+
+def clientThread(socket):
+     while True:
+          sentence = socket.recv(1024).decode();
+          splitSentence = sentence.split('_', 1)
+          length = int(splitSentence[0])
+          message = splitSentence[1]
+          messageLength = length(message.encode('utf-8'))
+          if(messageLength < length):
+               message += socket.recv(length - messageLength).decode()
+          handleMessage(message)
+
+serverAddress = sys.argv[1]
+serverPort = sys.argv[2]
 serverSocket = socket(AF_INET,SOCK_STREAM)
-serverSocket.bind(('', serverPort))
-serverSocket.listen(1)
-print('The server is ready to receive')
+try:
+     serverSocket.bind((serverAddress, int(serverPort)))
+except:
+     print("Could not open requested server and port")
+     exit()
+serverSocket.settimeout(0.2)
+serverSocket.listen(5)  
 while True:
-     connectionSocket, addr = serverSocket.accept()
-     
-     sentence = connectionSocket.recv(1024).decode()
+     try:
+          (connectionSocket, addr) = serverSocket.accept()
+          x = Thread(target=clientThread, daemon=True, args=(connectionSocket,))
+          x.start()
+     except timeout:
+          pass
 
-     capsSentence = sentence.upper()
 
-     connectionSocket.send(capsSentence.encode())
-     connectionSocket.close()
+
+
+
+
+
+
