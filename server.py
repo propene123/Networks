@@ -3,27 +3,49 @@ import json
 import os
 from socket import *
 from threading import Thread
+from datetime import datetime
 
 def getBoards(socket):
-     boards = [x for x in os.listdir(os.path.join(os.getcwd(), 'board')) if os.path.isdir(os.path.join(os.path.join(os.getcwd(), 'board'), x))]
-     msgJson = json.dumps({'type': 'GET_BOARDS_RESPONSE', 'payload': boards})
-     length = len(msgJson.encode('utf-8'))
-     message = str(length) + '_' + msgJson
+     payload = ''
+     respType = ''
+     payload = [x for x in os.listdir(os.path.join(os.getcwd(), 'board')) if os.path.isdir(os.path.join(os.path.join(os.getcwd(), 'board'), x))]
+     if not payload:
+          respType = 'ERROR'
+          payload = 'No boards defined'
+     else:
+          respType = 'GET_BOARDS_RESPONSE'
+     response = json.dumps({'type': respType, 'payload': payload})
+     length = len(payload.encode('utf-8'))
+     message = str(length) + '_' + response
      socket.sendall(message.encode())
 
 
-
+def boardExists(board):
+     res = False
+     boardPath = os.path.join(os.getcwd(), 'board', board)
+     if os.path.exists(boardPath) and os.path.isdir(boardPath):
+          res = True
+     return res
 
 def getMessages(socket, board):
-     boardPath = os.path.join(os.getcwd(), 'board', board)
      payload = ''
      respType = ''
-     if (not os.path.exists(boardPath) or not os.path.isdir(boardPath)):
-          payload = 'board does not exist'
+     if (not boardExists(board)):
+          payload = 'Board does not exist'
           respType = 'ERROR'
      else:
-          payload = [os.path.splitext(x)[0] for x in os.listdir(boardPath) if os.path.isfile(os.path.join(boardPath, x))]
-          payload.sort(reverse = True)
+          boardPath = os.path.join(os.getcwd(), 'board', board)
+          names = [os.path.splitext(x)[0] for x in os.listdir(boardPath) if os.path.isfile(os.path.join(boardPath, x))]
+          names.sort(reverse = True)
+          names = names[:100]
+          messages = []
+          for name in names:
+               try:
+                    f = open(os.path.join(os.getcwd(), 'board', board, name))
+                    messages += f.readlines()
+               finally:
+                    f.close()
+          payload = {'titles': names, 'messages': messages}
           respType = 'GET_MESSAGES_RESPONSE'
      response = json.dumps({'type':respType, 'payload': payload})
      length = len(response.encode('utf-8'))
@@ -31,8 +53,33 @@ def getMessages(socket, board):
      socket.sendall(message.encode())
 
 
-def postMessage(socket):
-     pass
+def postMessage(socket, board, title, msg):
+     payload = ''
+     respType = ''
+     if (not boardExists(board)):
+          payload = 'Board does not exist'
+          respType = 'ERROR'
+     else:
+          filename = datetime.today().strftime('%Y%m%d-%H%M%S-') + title.replace(' ', '_')
+          filepath = os.path.join(os.getcwd(), 'board', board, filename)
+          try:
+               f = open(filepath, 'w')
+               f.write(msg)
+               respType = 'POST_MESSAGE_RESPONSE'
+               payload = 'Successfully posted message'
+          except OSError:
+              respType = 'ERROR'
+              payload = 'Could not create message with that title'
+          finally:
+               f.close()
+     response = json.dumps({'type':respType, 'payload': payload})
+     length = len(response.encode('utf-8'))
+     message = str(length) + '_' + response
+     socket.sendall(message.encode())
+          
+
+
+
 
 def handleMessage(msg, socket):
      obj = json.loads(msg)
@@ -40,7 +87,8 @@ def handleMessage(msg, socket):
           getBoards(socket)
      if(obj['type'] == 'GET_MESSAGES'):
           getMessages(socket, obj['board'])
-
+     if(obj['type'] == 'POST_MESSAGE'):
+          postMessage(socket, obj['board'], obj['title'], obj['msg'])
 
 def clientThread(socket):
      while True:
