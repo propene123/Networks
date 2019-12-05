@@ -7,29 +7,26 @@ from datetime import datetime
 
 
 def writeToLog(path, address, messageType, success):
-     logLock.acquire()
-     try:
-          f = open(path, 'a')
-          outLine = ''
-          outLine += address[0]+':'+str(address[1])+'\t'
-          outLine += datetime.today().strftime('%c')+'\t'
-          outLine += messageType+'\t'
-          if(success):
-               outLine += 'OK'
-          else:
-               outLine += 'ERROR'
-          outLine += '\n'
-          f.write(outLine)
-     except FileNotFoundError:
-          print('Could not open log file... exiting server')
-          exit()
-     except IOError:
-          print('Could not write to log file... exiting server')
-          exit()
-     finally:
-          if(f):
-               f.close()
-     logLock.release()
+     with logLock:
+          try:
+               with open(path, 'a') as f:
+                    try:
+                         outLine = ''
+                         outLine += address[0]+':'+str(address[1])+'\t'
+                         outLine += datetime.today().strftime('%c')+'\t'
+                         outLine += messageType+'\t'
+                         if(success):
+                              outLine += 'OK'
+                         else:
+                              outLine += 'ERROR'
+                         outLine += '\n'
+                         f.write(outLine)
+                    except IOError:
+                         print('Could not write to log file... exiting server')
+                         exit()
+          except FileNotFoundError:
+               print('Could not open log file... exiting server')
+               exit()
 
 def sendMessage(socket, respType, payload):
      response = json.dumps({'type': respType, 'payload': payload})
@@ -76,11 +73,8 @@ def getMessages(socket, board):
           names = names[:100]
           messages = []
           for name in names:
-               try:
-                    f = open(os.path.join(os.getcwd(), 'board', board, name))
+               with open(os.path.join(os.getcwd(), 'board', board, name)) as f:
                     messages += f.readlines()
-               finally:
-                    f.close()
           payload = {'titles': names, 'messages': messages}
           respType = 'GET_MESSAGES_RESPONSE'
           writeToLog(logPath, socket.getpeername(), 'GET_MESSAGES', True)
@@ -98,20 +92,16 @@ def postMessage(socket, board, title, msg):
      else:
           filename = datetime.today().strftime('%Y%m%d-%H%M%S-') + title.replace(' ', '_')
           filepath = os.path.join(os.getcwd(), 'board', board, filename)
-          f = None
           try:
-               f = open(filepath, 'w')
-               f.write(msg)
-               respType = 'POST_MESSAGE_RESPONSE'
-               payload = 'Successfully posted message'
-               writeToLog(logPath, socket.getpeername(), 'POST_MESSAGE', True)
+               with open(filepath, 'w') as f:
+                    f.write(msg)
+                    respType = 'POST_MESSAGE_RESPONSE'
+                    payload = 'Successfully posted message'
+                    writeToLog(logPath, socket.getpeername(), 'POST_MESSAGE', True)
           except OSError:
               respType = 'ERROR'
               payload = 'Could not create message with that title'
               writeToLog(logPath, socket.getpeername(), 'POST_MESSAGE', False)
-          finally:
-               if(f):
-                    f.close()
      sendMessage(socket, respType, payload)
 
           
