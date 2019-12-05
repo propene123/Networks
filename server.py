@@ -5,6 +5,14 @@ from socket import *
 from threading import Thread
 from datetime import datetime
 
+
+def sendMessage(socket, respType, payload):
+     response = json.dumps({'type': respType, 'payload': payload})
+     length = len(payload.encode('utf-8'))
+     message = str(length) + '_' + response
+     socket.sendall(message.encode())
+
+
 def getBoards(socket):
      payload = ''
      respType = ''
@@ -14,10 +22,7 @@ def getBoards(socket):
           payload = 'No boards defined'
      else:
           respType = 'GET_BOARDS_RESPONSE'
-     response = json.dumps({'type': respType, 'payload': payload})
-     length = len(payload.encode('utf-8'))
-     message = str(length) + '_' + response
-     socket.sendall(message.encode())
+     sendMessage(socket, respType, payload)
 
 
 def boardExists(board):
@@ -47,10 +52,8 @@ def getMessages(socket, board):
                     f.close()
           payload = {'titles': names, 'messages': messages}
           respType = 'GET_MESSAGES_RESPONSE'
-     response = json.dumps({'type':respType, 'payload': payload})
-     length = len(response.encode('utf-8'))
-     message = str(length) + '_' + response
-     socket.sendall(message.encode())
+     sendMessage(socket, respType, payload)
+
 
 
 def postMessage(socket, board, title, msg):
@@ -72,18 +75,14 @@ def postMessage(socket, board, title, msg):
               payload = 'Could not create message with that title'
           finally:
                f.close()
-     response = json.dumps({'type':respType, 'payload': payload})
-     length = len(response.encode('utf-8'))
-     message = str(length) + '_' + response
-     socket.sendall(message.encode())
+     sendMessage(socket, respType, payload)
+
           
 def unrecognisedMessage(socket):
      payload = 'That command is not a recognised command'
      respType = 'ERROR'
-     response = json.dumps({'type':respType, 'payload': payload})
-     length = len(response.encode('utf-8'))
-     message = str(length) + '_' + response
-     socket.sendall(message.encode())
+     sendMessage(socket, respType, payload)
+
 
 
 
