@@ -34,7 +34,7 @@ def sendMessage(socket, respType, payload):
      message = str(length) + '_' + response
      try:
           socket.sendall(message.encode())
-     except ConnectionError:
+     except (ConnectionError, OSError):
           print('Connection was closed on a client thread')
 
 
@@ -146,7 +146,7 @@ def clientThread(socket):
                if(messageLength < length):
                     message += socket.recv(length - messageLength).decode()
                handleMessage(message, socket)
-          except ConnectionError:
+          except (ConnectionError, OSError):
                print("Connection closed on client thread")
                break
      socket.close()
