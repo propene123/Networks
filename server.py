@@ -14,8 +14,21 @@ def getBoards(socket):
 
 
 
-def getMessages(socket):
-     pass
+def getMessages(socket, board):
+     boardPath = os.path.join(os.getcwd(), 'board', board)
+     payload = ''
+     respType = ''
+     if (not os.path.exists(boardPath) or not os.path.isdir(boardPath)):
+          payload = 'board does not exist'
+          respType = 'ERROR'
+     else:
+          payload = [os.path.splitext(x)[0] for x in os.listdir(boardPath) if os.path.isfile(os.path.join(boardPath, x))]
+          payload.sort(reverse = True)
+          respType = 'GET_MESSAGES_RESPONSE'
+     response = json.dumps({'type':respType, 'payload': payload})
+     length = len(response.encode('utf-8'))
+     message = str(length) + '_' + response
+     socket.sendall(message.encode())
 
 
 def postMessage(socket):
@@ -25,6 +38,8 @@ def handleMessage(msg, socket):
      obj = json.loads(msg)
      if(obj['type'] == 'GET_BOARDS'):
           getBoards(socket)
+     if(obj['type'] == 'GET_MESSAGES'):
+          getMessages(socket, obj['board'])
 
 
 def clientThread(socket):
