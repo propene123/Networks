@@ -1,10 +1,15 @@
-from socket import *
+import sys
 import json
+from socket import *
 
-serverName = '127.0.0.1'
-serverPort = 9999
+serverAddress = sys.argv[1]
+serverPort = sys.argv[2]
 clientSocket = socket(AF_INET, SOCK_STREAM)
-clientSocket.connect((serverName, serverPort))
+try:
+     clientSocket.bind((serverAddress, int(serverPort)))
+except:
+     print("Could not open requested server and port")
+     exit()
 #sentence = '{"type": "POST_MESSAGE", "board": "Strangely_named_board", "title": "test bro lel kekw", "msg": "Hello this is a test message kedaaaaah"}'
 sentence = '{"type": "GET_MESSAGES", "board": "Strangely_named_board"}'
 sentence = (str(len(sentence.encode('utf-8'))) + '_') + sentence
