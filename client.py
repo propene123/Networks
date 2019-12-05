@@ -61,7 +61,7 @@ def refresh(socket):
         exit()
     i = 1
     for board in respPayload:
-        print(str(i) + '.', board)
+        print(str(i) + '.', board.replace('_', ' '))
         i += 1
     return boards
 
@@ -78,7 +78,6 @@ clientSocket.settimeout(10)
 boards = refresh(clientSocket)
 while True:
     userInput = input('Enter a board number to view lastest 100 messages from that board. Enter POST to post a message. Enter REFRESH to refresh list of boards. Enter QUIT to close the client\n')
-    
     if(userInput.isdigit()):
         index = int(userInput)
         if(index < 1 or index > len(boards)):
@@ -99,6 +98,9 @@ while True:
 
     elif(userInput.upper() == 'POST'):
         userInput = input('Enter number of board to post to\n')
+        if(not userInput.isdigit()):
+            print('Input is not a number')
+            continue
         index = int(userInput)
         if(index < 1 or index > len(boards)):
             print('Please enter a number on the list')

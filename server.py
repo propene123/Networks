@@ -2,9 +2,34 @@ import sys
 import json
 import os
 from socket import *
-from threading import Thread
+from threading import Thread, Lock
 from datetime import datetime
 
+
+def writeToLog(path, address, messageType, success):
+     logLock.acquire()
+     try:
+          f = open(path, 'a')
+          outLine = ''
+          outLine += address[0]+':'+str(address[1])+'\t'
+          outLine += datetime.today().strftime('%c')+'\t'
+          outLine += messageType+'\t'
+          if(success):
+               outLine += 'OK'
+          else:
+               outLine += 'ERROR'
+          outLine += '\n'
+          f.write(outLine)
+     except FileNotFoundError:
+          print('Could not open log file... exiting server')
+          exit()
+     except IOError:
+          print('Could not write to log file... exiting server')
+          exit()
+     finally:
+          if(f):
+               f.close()
+     logLock.release()
 
 def sendMessage(socket, respType, payload):
      response = json.dumps({'type': respType, 'payload': payload})
@@ -23,8 +48,10 @@ def getBoards(socket):
      if not payload:
           respType = 'ERROR'
           payload = 'No boards defined'
+          writeToLog(logPath, socket.getpeername(), 'GET_BOARDS', False)
      else:
           respType = 'GET_BOARDS_RESPONSE'
+          writeToLog(logPath, socket.getpeername(), 'GET_BOARDS', True)
      sendMessage(socket, respType, payload)
 
 
@@ -41,6 +68,7 @@ def getMessages(socket, board):
      if (not boardExists(board)):
           payload = 'Board does not exist'
           respType = 'ERROR'
+          writeToLog(logPath, socket.getpeername(), 'GET_MESSAGES', False)
      else:
           boardPath = os.path.join(os.getcwd(), 'board', board)
           names = [os.path.splitext(x)[0] for x in os.listdir(boardPath) if os.path.isfile(os.path.join(boardPath, x))]
@@ -55,6 +83,7 @@ def getMessages(socket, board):
                     f.close()
           payload = {'titles': names, 'messages': messages}
           respType = 'GET_MESSAGES_RESPONSE'
+          writeToLog(logPath, socket.getpeername(), 'GET_MESSAGES', True)
      sendMessage(socket, respType, payload)
 
 
@@ -65,19 +94,24 @@ def postMessage(socket, board, title, msg):
      if (not boardExists(board)):
           payload = 'Board does not exist'
           respType = 'ERROR'
+          writeToLog(logPath, socket.getpeername(), 'POST_MESSAGE', False)
      else:
           filename = datetime.today().strftime('%Y%m%d-%H%M%S-') + title.replace(' ', '_')
           filepath = os.path.join(os.getcwd(), 'board', board, filename)
+          f = None
           try:
                f = open(filepath, 'w')
                f.write(msg)
                respType = 'POST_MESSAGE_RESPONSE'
                payload = 'Successfully posted message'
+               writeToLog(logPath, socket.getpeername(), 'POST_MESSAGE', True)
           except OSError:
               respType = 'ERROR'
               payload = 'Could not create message with that title'
+              writeToLog(logPath, socket.getpeername(), 'POST_MESSAGE', False)
           finally:
-               f.close()
+               if(f):
+                    f.close()
      sendMessage(socket, respType, payload)
 
           
@@ -136,7 +170,10 @@ except:
      print("Could not open requested server and port")
      exit()
 serverSocket.settimeout(0.2)
-serverSocket.listen(5)  
+serverSocket.listen(5) 
+logLock = Lock()
+logPath = os.path.join(os.getcwd(), 'server.log')
+
 while True:
      try:
           (connectionSocket, addr) = serverSocket.accept()
