@@ -72,9 +72,10 @@ def getMessages(socket, board):
           names.sort(reverse = True)
           names = names[:100]
           messages = []
-          for name in names:
-               with open(os.path.join(os.getcwd(), 'board', board, name)) as f:
+          for i in range(len(names)):
+               with open(os.path.join(os.getcwd(), 'board', board, names[i])) as f:
                     messages += f.readlines()
+               names[i] = names[i].split('-',2)[2]
           payload = {'titles': names, 'messages': messages}
           respType = 'GET_MESSAGES_RESPONSE'
           writeToLog(logPath, socket.getpeername(), 'GET_MESSAGES', True)

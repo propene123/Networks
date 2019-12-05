@@ -21,13 +21,17 @@ def parseResponse(socket):
         print('Server timed out')
         socket.close()
         exit()
+    except (ConnectionError, OSError):
+        print('The connection has been closed by the server')
+        socket.close()
+        exit()
 
 def sendMessage(socket, msg):
      length = len(msg.encode('utf-8'))
      message = str(length) + '_' + msg
      try:
         socket.sendall(message.encode())
-     except ConnectionError:
+     except (ConnectionError, OSError):
         print('Server is down... Exiting Client')
         socket.close()
         exit()
@@ -91,11 +95,10 @@ while True:
             i = 0
             for title in response[1]['titles']:
                 print('*****************************************************************************************')
-                print(title)
+                print(title.replace('_', ' '))
                 print(response[1]['messages'][i])
                 i+=1
             print('*****************************************************************************************')
-
     elif(userInput.upper() == 'POST'):
         userInput = input('Enter number of board to post to\n')
         if(not userInput.isdigit()):
