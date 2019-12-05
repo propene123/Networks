@@ -167,11 +167,16 @@ logPath = os.path.join(os.getcwd(), 'server.log')
 
 while True:
      try:
-          (connectionSocket, addr) = serverSocket.accept()
-          x = Thread(target=clientThread, daemon=True, args=(connectionSocket,))
-          x.start()
-     except timeout:
-          pass
+          try:
+               (connectionSocket, addr) = serverSocket.accept()
+               x = Thread(target=clientThread, daemon=True, args=(connectionSocket,))
+               x.start()
+          except timeout:
+               pass
+     except KeyboardInterrupt:
+          print('Keyboard interrupt... Closing server')
+          break
+serverSocket.close()
 
 
 
