@@ -8,9 +8,12 @@ from datetime import datetime
 
 def sendMessage(socket, respType, payload):
      response = json.dumps({'type': respType, 'payload': payload})
-     length = len(payload.encode('utf-8'))
+     length = len(response.encode('utf-8'))
      message = str(length) + '_' + response
-     socket.sendall(message.encode())
+     try:
+          socket.sendall(message.encode())
+     except ConnectionResetError:
+          print('Connection was closed on a client thread')
 
 
 def getBoards(socket):
@@ -87,28 +90,41 @@ def unrecognisedMessage(socket):
 
 
 def handleMessage(msg, socket):
-     obj = json.loads(msg)
-     if(obj['type'] == 'GET_BOARDS'):
-          getBoards(socket)
-     elif(obj['type'] == 'GET_MESSAGES'):
-          getMessages(socket, obj['board'])
-     elif(obj['type'] == 'POST_MESSAGE'):
-          postMessage(socket, obj['board'], obj['title'], obj['msg'])
-     else:
+     try:
+          obj = json.loads(msg)
+     except json.JSONDecodeError:
+          unrecognisedMessage(socket)
+     try:
+          if(obj['type'] == 'GET_BOARDS'):
+               getBoards(socket)
+          elif(obj['type'] == 'GET_MESSAGES'):
+               getMessages(socket, obj['board'])
+          elif(obj['type'] == 'POST_MESSAGE'):
+               postMessage(socket, obj['board'], obj['title'], obj['msg'])
+          else:
+               unrecognisedMessage(socket)
+     except KeyError:
           unrecognisedMessage(socket)
 
 def clientThread(socket):
      while True:
-          sentence = socket.recv(1024).decode();
-          if not sentence:
+          try:
+               sentence = socket.recv(1024).decode();
+               if not sentence:
+                    break
+               try:
+                    splitSentence = sentence.split('_', 1)
+                    length = int(splitSentence[0])
+                    message = splitSentence[1]
+               except (IndexError, ValueError):
+                    unrecognisedMessage(socket)
+               messageLength = len(message.encode('utf-8'))
+               if(messageLength < length):
+                    message += socket.recv(length - messageLength).decode()
+               handleMessage(message, socket)
+          except ConnectionAbortedError:
+               print("Connection closed on client thread")
                break
-          splitSentence = sentence.split('_', 1)
-          length = int(splitSentence[0])
-          message = splitSentence[1]
-          messageLength = len(message.encode('utf-8'))
-          if(messageLength < length):
-               message += socket.recv(length - messageLength).decode()
-          handleMessage(message, socket)
      socket.close()
 
 serverAddress = sys.argv[1]
