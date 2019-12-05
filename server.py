@@ -77,7 +77,13 @@ def postMessage(socket, board, title, msg):
      message = str(length) + '_' + response
      socket.sendall(message.encode())
           
-
+def unrecognisedMessage(socket):
+     payload = 'That command is not a recognised command'
+     respType = 'ERROR'
+     response = json.dumps({'type':respType, 'payload': payload})
+     length = len(response.encode('utf-8'))
+     message = str(length) + '_' + response
+     socket.sendall(message.encode())
 
 
 
@@ -85,10 +91,12 @@ def handleMessage(msg, socket):
      obj = json.loads(msg)
      if(obj['type'] == 'GET_BOARDS'):
           getBoards(socket)
-     if(obj['type'] == 'GET_MESSAGES'):
+     elif(obj['type'] == 'GET_MESSAGES'):
           getMessages(socket, obj['board'])
-     if(obj['type'] == 'POST_MESSAGE'):
+     elif(obj['type'] == 'POST_MESSAGE'):
           postMessage(socket, obj['board'], obj['title'], obj['msg'])
+     else:
+          unrecognisedMessage(socket)
 
 def clientThread(socket):
      while True:
