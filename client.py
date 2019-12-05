@@ -2,9 +2,10 @@ import sys
 import json
 from socket import *
 
+
 def parseResponse(socket):
     try:
-        sentence = socket.recv(1024).decode();
+        sentence = socket.recv(1024).decode()
         splitSentence = sentence.split('_', 1)
         length = int(splitSentence[0])
         message = splitSentence[1]
@@ -26,12 +27,13 @@ def parseResponse(socket):
         socket.close()
         exit()
 
+
 def sendMessage(socket, msg):
-     length = len(msg.encode('utf-8'))
-     message = str(length) + '_' + msg
-     try:
+    length = len(msg.encode('utf-8'))
+    message = str(length) + '_' + msg
+    try:
         socket.sendall(message.encode())
-     except (ConnectionError, OSError):
+    except (ConnectionError, OSError):
         print('Server is down... Exiting Client')
         socket.close()
         exit()
@@ -41,17 +43,22 @@ def getBoards(socket):
     msgType = 'GET_BOARDS'
     msgJson = json.dumps({'type': msgType})
     sendMessage(socket, msgJson)
-    
+
+
 def getMessages(socket, boardNumber):
     msgType = 'GET_MESSAGES'
-    msgJson = json.dumps({'type': msgType, 'board': boards[boardNumber-1]})
+    msgJson = json.dumps({'type': msgType, 'board': boards[boardNumber - 1]})
     sendMessage(socket, msgJson)
 
 
 def postMessage(socket, boardNumber, title, content):
     msgType = 'POST_MESSAGE'
-    msgJson = json.dumps({'type': msgType, 'board': boards[boardNumber-1], 'title': title, 'msg': content})
+    msgJson = json.dumps({'type': msgType,
+                          'board': boards[boardNumber - 1],
+                          'title': title,
+                          'msg': content})
     sendMessage(socket, msgJson)
+
 
 def refresh(socket):
     getBoards(socket)
@@ -60,7 +67,7 @@ def refresh(socket):
     respPayload = response[1]
     boards = respPayload
     if(respType == 'ERROR'):
-        print (respPayload)
+        print(respPayload)
         socket.close()
         exit()
     i = 1
@@ -74,14 +81,17 @@ serverAddress = sys.argv[1]
 serverPort = sys.argv[2]
 clientSocket = socket(AF_INET, SOCK_STREAM)
 try:
-     clientSocket.connect((serverAddress, int(serverPort)))
-except:
-     print("Could not open requested server and port")
-     exit()
+    clientSocket.connect((serverAddress, int(serverPort)))
+except BaseException:
+    print("Could not open requested server and port")
+    exit()
 clientSocket.settimeout(10)
 boards = refresh(clientSocket)
 while True:
-    userInput = input('Enter a board number to view lastest 100 messages from that board. Enter POST to post a message. Enter REFRESH to refresh list of boards. Enter QUIT to close the client\n')
+    userInput = input(
+        'Enter a board number to view lastest 100 messages from that board.'
+        'Enter POST to post a message. Enter REFRESH to refresh list of boa'
+        'rds. Enter QUIT to close the client\n')
     if(userInput.isdigit()):
         index = int(userInput)
         if(index < 1 or index > len(boards)):
@@ -94,11 +104,15 @@ while True:
         else:
             i = 0
             for title in response[1]['titles']:
-                print('*****************************************************************************************')
+                print(
+                    '*********************************************************'
+                    '********************************')
                 print(title.replace('_', ' '))
                 print(response[1]['messages'][i])
-                i+=1
-            print('*****************************************************************************************')
+                i += 1
+            print(
+                '*********************************************************'
+                '********************************')
     elif(userInput.upper() == 'POST'):
         userInput = input('Enter number of board to post to\n')
         if(not userInput.isdigit()):
@@ -124,4 +138,3 @@ while True:
         print('invalid input try again')
 
 clientSocket.close()
-
