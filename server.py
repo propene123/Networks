@@ -135,6 +135,7 @@ def clientThread(socket):
           try:
                sentence = socket.recv(1024).decode();
                if not sentence:
+                    print("Connection closed on client thread")
                     break
                try:
                     splitSentence = sentence.split('_', 1)
