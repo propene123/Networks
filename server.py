@@ -126,7 +126,9 @@ def getMessages(socket, board):
         for i in range(len(names)):
             filepath = os.path.join(os.getcwd(), 'board', board, names[i])
             with open(filepath) as f:
-                messages += f.readlines()
+                contents = ''
+                contents += f.readlines()
+                messages += contents
             # edit list of message titles to not be the full filenames
             names[i] = names[i].split('-', 2)[2]
         # create response payload
