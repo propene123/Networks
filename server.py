@@ -63,28 +63,31 @@ def sendMessage(socket, respType, payload):
 def getBoards(socket):
     payload = ''
     respType = ''
-    # returns list of everything in boards folder that is
-    # a directory
-    payload = [
-        x for x in os.listdir(
-            os.path.join(
-                os.getcwd(),
-                'board')) if os.path.isdir(
-            os.path.join(
-                os.path.join(
-                    os.getcwd(),
-                    'board'),
-                x))]
-    # if there are no boards send ERROR back to client
-    if not payload:
+    boardPath = os.path.join(os.getcwd(), 'board')
+    if (not os.path.exists(boardPath) or not os.path.isdir(boardPath)):
         respType = 'ERROR'
         payload = 'No boards defined'
         # write error to log file
         writeToLog(logPath, socket.getpeername(), 'GET_BOARDS', False)
     else:
-        # write success to log file
-        respType = 'GET_BOARDS_RESPONSE'
-        writeToLog(logPath, socket.getpeername(), 'GET_BOARDS', True)
+        # returns list of everything in boards folder that is
+        # a directory
+        payload = [
+            x for x in os.listdir(
+                boardPath) if os.path.isdir(
+                os.path.join(
+                    boardPath,
+                    x))]
+        # if there are no boards send ERROR back to client
+        if not payload:
+            respType = 'ERROR'
+            payload = 'No boards defined'
+            # write error to log file
+            writeToLog(logPath, socket.getpeername(), 'GET_BOARDS', False)
+        else:
+            # write success to log file
+            respType = 'GET_BOARDS_RESPONSE'
+            writeToLog(logPath, socket.getpeername(), 'GET_BOARDS', True)
     # send response to client
     sendMessage(socket, respType, payload)
 
@@ -264,6 +267,22 @@ serverSocket.listen(5)
 # create log mutex and logpath
 logLock = Lock()
 logPath = os.path.join(os.getcwd(), 'server.log')
+boardPath = os.path.join(os.getcwd(), 'board')
+# check board folder exists
+if (not os.path.exists(boardPath) or not os.path.isdir(boardPath)):
+    # exit if no boards are defined on startup
+    print('There are no boards')
+    exit()
+boards = [
+    x for x in os.listdir(boardPath) if os.path.isdir(
+        os.path.join(
+            boardPath,
+            x))]
+# check boards folder is populated
+if not boards:
+    # exit if no boards are defined on startup
+    print('There are no boards')
+    exit()
 # main server loop
 while True:
     try:
